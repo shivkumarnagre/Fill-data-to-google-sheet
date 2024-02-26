@@ -28,13 +28,22 @@ def form():
 def submit(fname, lname, email):
     print(f"Submitted: {fname}, {lname}, {email}")
     gc = pygsheets.authorize(service_file='Credential.json')
-    df = pd.DataFrame()
-    df['Firstame'] = [fname] 
-    df['Lastname'] = [lname]
-    df['Email'] = [email]
     gsheet = gc.open('store_data')
     wks = gsheet[0]
-   # wks.set_dataframe(df,(1,1))
-    wks.set_dataframe(df,(1,1))
-form()
 
+    #Read specific range
+    data = wks.get_values('A1', end='A20')
+    last_non_empty_index = -1
+    for i, value in enumerate(data):
+        if value is not None:
+            last_non_empty_index = i
+    last_empty_cell = last_non_empty_index + 1   
+    # Set DataFrame to sheet without header
+    if last_non_empty_index == 0:
+        df = pd.DataFrame({'Firstname': [fname], 'Lastname': [lname], 'Email': [email]})
+        wks.set_dataframe(df, start=(last_empty_cell,1), value_input_option='RAW') 
+    else:
+        wks.update_value((last_empty_cell+1, 1), fname)  # Insert first name in column A
+        wks.update_value((last_empty_cell+1, 2), lname)  # Insert last name in column B
+        wks.update_value((last_empty_cell+1, 3), email)  # Insert email in column C
+form()
